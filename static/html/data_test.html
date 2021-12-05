@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ShowMovie</title>
+        <script src="/static/js/third_party_lib/d3.min.js"></script>
+        <script src="/static/js/library/d3-tip.js"></script>
+        <link rel="icon" href="/static/pinkheart.ico">
+    </head>
+    
+    <body>
+        <svg width="1500" height="1000" id="mainsvg" class="svgs"></svg>
+        
+
+        <script>
+            function Scrubber(values, {
+                format = value => value,
+                initial = 1,
+                delay = null,
+                autoplay = true,
+                loop = true,
+                loopDelay = null,
+                alternate = false
+                } = {}) {
+                values = Array.from(values);
+                const button_node = document.createElement('button');
+                button_node.setAttribute('name', 'b');
+                button_node.setAttribute('type', 'button');
+                button_node.setAttribute('style', 'margin-right: 0.4em; width: 5em;');
+
+
+                
+
+                const input_node = document.createElement('input');
+                input_node.setAttribute('name','i');
+                input_node.setAttribute('type','range');
+                input_node.setAttribute('min', 0);
+                input_node.setAttribute('max', `${values.length - 1}`);//
+                input_node.setAttribute('value', `${initial}`);//
+                input_node.setAttribute('step',1);
+                input_node.setAttribute('style',"width: 180px;");
+
+                const output_node = document.createElement('output');
+                output_node.setAttribute('name','o');
+                output_node.setAttribute('style',"margin-left: 0.4em;");
+
+                const label_node = document.createElement('label');
+                label_node.setAttribute('style', 'display: flex; align-items: center;');
+                label_node.appendChild(input_node);
+                label_node.appendChild(output_node);
+
+                
+                
+
+                const form_node = document.createElement('form');
+                form_node.setAttribute('style', 'font: 12px var(--sans-serif); font-variant-numeric: tabular-nums; display: flex; height: 33px; align-items: center;');
+                form_node.appendChild(button_node);
+                form_node.appendChild(label_node);
+
+                const div_node = document.createElement('div');
+                div_node.appendChild(form_node);
+
+                
+
+                const body_node = document.getElementsByTagName('body')[0];
+                body_node.appendChild(div_node);
+
+                const form = document.getElementsByTagName('form')[0];
+
+                console.log(form);
+
+                //以上基本节点创建过程结束
+
+                let frame = null;
+                let timer = null;
+                let interval = null;
+                let direction = 1;
+                function start() {
+                    form.b.textContent = "Pause";
+                    if (delay === null) frame = requestAnimationFrame(tick);
+                    else interval = setInterval(tick, delay);
+                }
+                function stop() {
+                    form.b.textContent = "Play";
+                    if (frame !== null) cancelAnimationFrame(frame), frame = null;
+                    if (timer !== null) clearTimeout(timer), timer = null;
+                    if (interval !== null) clearInterval(interval), interval = null;
+                }
+                function running() {
+                    return frame !== null || timer !== null || interval !== null;
+                }
+                function tick() {
+                    if (form.i.valueAsNumber === (direction > 0 ? values.length - 1 : direction < 0 ? 0 : NaN)) {
+                    if (!loop) return stop();
+                    if (alternate) direction = -direction;
+                    if (loopDelay !== null) {
+                        if (frame !== null) cancelAnimationFrame(frame), frame = null;
+                        if (interval !== null) clearInterval(interval), interval = null;
+                        timer = setTimeout(() => (step(), start()), loopDelay);
+                        return;
+                    }
+                    }
+                    if (delay === null) frame = requestAnimationFrame(tick);
+                    step();
+                }
+                function step() {
+                    form.i.valueAsNumber = (form.i.valueAsNumber + direction + values.length) % values.length;
+                    form.i.dispatchEvent(new CustomEvent("input", {bubbles: true}));
+                }
+                form.i.oninput = event => {
+                    if (event && event.isTrusted && running()) stop();
+                    form.value = values[form.i.valueAsNumber];
+                    form.o.value = format(form.value, form.i.valueAsNumber, values);
+                };
+                form.b.onclick = () => {
+                    if (running()) return stop();
+                    direction = alternate && form.i.valueAsNumber === values.length - 1 ? -1 : 1;
+                    form.i.valueAsNumber = (form.i.valueAsNumber + direction) % values.length;
+                    form.i.dispatchEvent(new CustomEvent("input", {bubbles: true}));
+                    start();
+                };
+                form.i.oninput();
+                if (autoplay) start();
+                else stop();
+                //Inputs.disposal(form).then(stop);
+                //上面这句话目前被注释掉是没有影响的，Inputs未被定义报错，原因不明；这句话的作用不明
+                return form;
+
+            }
+
+            function data_return(){
+                let scrubber = document.getElementsByTagName("form")[0];
+                return scrubber.o;
+            }
+
+            let aduration = 100;//100ms刷新一次
+
+
+            d3.csv("./static/data/article_name.csv").then(article=>{
+
+                let article_arr = new Array();
+                console.log(article)
+
+                for(i=2;i<article.length;i++)
+                {
+                    article_arr[Number(article[i].index)] = article[i].article_names;
+                }
+                
+                Scrubber(article_arr, {
+                    autoplay: false,
+                    delay: aduration
+                });
+                let intervalID = setInterval( () => {
+                    
+                    if(true){
+                        let val = data_return().value;
+                        let node_path = "./static/data/node_data/node_"+val+".csv"
+                        let link_path = "./static/data/link_data/links_"+val+".csv"
+                        console.log(link_path);
+                    }
+                
+                }, aduration)
+
+            })
+
+            
+
+            
+
+
+
+
+
+
+
+
+            // var chord = d3.chord()
+            // // 设置弦片段之间的间隔角度，即chord diagram 图中组成外层圆圈的各个弧段之间的角度
+            // .padAngle(0.05)
+            // // 设置数据矩阵matrix 的行内各列的排序顺序为降序排列
+            // .sortSubgroups(d3.descending);
+        
+            // let raw_nodes = [];
+            // let raw_links = [];
+            // //let ori_matrix = [];
+            // let search_map = [];//人物对应matrix的行列坐标查找表（正向查找：名字查索引）
+            // let search_map_opp = [];//与以上对应的反向查找表：索引查名字
+
+            // function getMatrix(path1,path2)
+            // {
+            //     d3.csv(path1).then(node=>{
+            //         raw_nodes = node;
+            //         let ori_matrix = new Array()
+            //         for(i=0;i<raw_nodes.length;i++)
+            //         {
+            //             search_map[raw_nodes[i].name1] = i;
+            //             search_map_opp[i] = raw_nodes[i].name1;
+            //         }
+                    
+
+            //         for(i=0;i<raw_nodes.length;i++)
+            //         {
+            //             ori_matrix[i] = new Array();
+            //             for(j=0;j<raw_nodes.length;j++)
+            //             {
+            //                 ori_matrix[i][j] = 0;
+            //             }
+            //         }
+                    
+            //         d3.csv(path2).then(link=>{
+            //             raw_links = link;
+            //             for(i=0;i<raw_nodes.length;i++)
+            //             {
+            //                 for(j=0;j<raw_links.length;j++)
+            //                 {
+            //                     if(raw_nodes[i].name1==raw_links[j].node1)//找到一个匹配link点
+            //                     {
+            //                         //找到之后我们想做的是知道node2对应的人物在人物表中的位置
+            //                         ori_matrix[i][search_map[raw_links[j].node2]] = Number(raw_links[j].link_num);
+            //                     }
+            //                     if(raw_nodes[i].name1==raw_links[j].node2)
+            //                     {
+            //                         ori_matrix[i][search_map[raw_links[j].node1]] = Number(raw_links[j].link_num);
+            //                     }
+
+            //                 }
+            //             }console.log(ori_matrix)
+                        
+            //         });
+
+                    
+            //     })
+                
+
+            //     //至此为止，我们已经得到了想要的matrix
+            // }
+
+            
+            // let path_character = './static/data/node_2.csv';
+            // let path_relation = './static/data/links_2.csv';
+            
+            
+            
+        </script>
+
+    </body>
+</html>
+
+
+
+

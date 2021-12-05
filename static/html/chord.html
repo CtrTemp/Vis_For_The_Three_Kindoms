@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ShowMovie</title>
+        <script src="/static/js/third_party_lib/d3.min.js"></script>
+        <script src="/static/js/library/d3-tip.js"></script>
+        <link rel="icon" href="/static/pinkheart.ico">
+    </head>
+    
+    <body>
+        <svg width="1500" height="1000" id="mainsvg" class="svgs"></svg>
+        <script src="/static/js/prj_js/scrubber.js"></script>
+        <script src="/static/js/prj_js/chord_render.js"></script>
+
+        <script>
+        
+        
+        let aduration = 3000;//100ms刷新一次
+
+        render_first();
+
+        d3.csv("./static/data/article_name.csv").then(article=>{
+
+            let article_arr = new Array();
+            console.log(article)
+
+            for(i=2;i<article.length;i++)
+            {
+                article_arr[Number(article[i].index)] = article[i].article_names;
+            }
+                
+            Scrubber(article_arr, {
+                autoplay: false,
+                delay: aduration
+            });//创建scrubber
+
+
+            //渲染主循环
+            let intervalID = setInterval( () => {
+                
+                if(true){
+                    let val = data_return().value;
+                    let node_path = "./static/data/node_data/node_"+val+".csv"
+                    let link_path = "./static/data/link_data/links_"+val+".csv"
+                    console.log(link_path);
+                    readFileAndRender(node_path, link_path);
+                }
+                
+            }, aduration)
+
+        })
+        
+        </script>
+
+    </body>
+</html>
+
+
+
+
